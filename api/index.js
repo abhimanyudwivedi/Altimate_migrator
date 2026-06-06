@@ -476,16 +476,20 @@ function isValidCallbackToken(request) {
   return auth === `Bearer ${expectedToken}`
 }
 
-function publicBaseUrl() {
-  return (process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` || '').replace(/\/$/, '')
+function publicBaseUrl(request) {
+  const forwardedHost = request?.headers?.['x-forwarded-host'] || request?.headers?.host || ''
+  const forwardedProto = request?.headers?.['x-forwarded-proto'] || 'https'
+  const requestBaseUrl = forwardedHost ? `${forwardedProto}://${forwardedHost}` : ''
+  return (process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` || requestBaseUrl || '').replace(/\/$/, '')
 }
 
-async function dispatchPbixWorkflow({ jobId, pbipPackageUrl }) {
+async function dispatchPbixWorkflow({ jobId, pbipPackageUrl, request }) {
   const owner = process.env.GITHUB_OWNER
   const repo = process.env.GITHUB_REPO
   const token = process.env.GITHUB_TOKEN
   const ref = process.env.GITHUB_REF || 'main'
-  const callbackUrl = process.env.PBIX_CALLBACK_URL || (publicBaseUrl() ? `${publicBaseUrl()}/api/jobs/${jobId}/worker-callback` : '')
+  const baseUrl = publicBaseUrl(request)
+  const callbackUrl = process.env.PBIX_CALLBACK_URL || (baseUrl ? `${baseUrl}/api/jobs/${jobId}/worker-callback` : '')
   if (!owner || !repo || !token) {
     return { dispatched: false, reason: 'Missing GITHUB_OWNER, GITHUB_REPO, or GITHUB_TOKEN environment variables' }
   }
@@ -695,7 +699,7 @@ export default async function handler(request, response) {
         sendJson(response, 404, { error: 'Job not found' })
         return
       }
-      const dispatch = await dispatchPbixWorkflow({ jobId: metadata.jobId, pbipPackageUrl: metadata.pbipPackageUrl })
+      const dispatch = await dispatchPbixWorkflow({ jobId: metadata.jobId, pbipPackageUrl: metadata.pbipPackageUrl, request })
       metadata.status = dispatch.dispatched ? 'pbix-worker-dispatched' : 'pbix-worker-unavailable'
       metadata.workflow = dispatch
       metadata.updatedAt = new Date().toISOString()

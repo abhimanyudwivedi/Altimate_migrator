@@ -69,13 +69,15 @@ jobs:
           $outputPath = Join-Path (Resolve-Path "out") "${{ steps.locate.outputs.report_name }}.pbix"
           & $env:pbi_tools_path compile $pbipFolder -outPath $outputPath -format PBIX -overwrite
           $exitCode = $LASTEXITCODE
+          Get-ChildItem -Path "out" -Force | Format-Table FullName, Length
           if ($exitCode -ne 0) {
             "created=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit $exitCode
           }
-          if (-not (Test-Path $outputPath)) { throw "pbi-tools completed but did not create $outputPath" }
+          $createdFile = Get-ChildItem -Path "out" -Recurse -File -Filter "*.pbix" | Select-Object -First 1
+          if (-not $createdFile) { throw "pbi-tools completed but did not create a PBIX file at or below $(Resolve-Path 'out')" }
           "created=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pbix_path=$outputPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "pbix_path=$($createdFile.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Compile PBIP to PBIT fallback with pbi-tools
         id: compile_pbit
@@ -88,13 +90,15 @@ jobs:
           $outputPath = Join-Path (Resolve-Path "out") "${{ steps.locate.outputs.report_name }}.pbit"
           & $env:pbi_tools_path compile $pbipFolder -outPath $outputPath -format PBIT -overwrite
           $exitCode = $LASTEXITCODE
+          Get-ChildItem -Path "out" -Force | Format-Table FullName, Length
           if ($exitCode -ne 0) {
             "created=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit $exitCode
           }
-          if (-not (Test-Path $outputPath)) { throw "pbi-tools completed but did not create $outputPath" }
+          $createdFile = Get-ChildItem -Path "out" -Recurse -File -Filter "*.pbit" | Select-Object -First 1
+          if (-not $createdFile) { throw "pbi-tools completed but did not create a PBIT file at or below $(Resolve-Path 'out')" }
           "created=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pbit_path=$outputPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "pbit_path=$($createdFile.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Capture PBIP source and packaging note
         if: always()
