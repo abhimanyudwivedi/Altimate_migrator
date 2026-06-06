@@ -1,11 +1,11 @@
 import crypto from 'node:crypto'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
+import { head, put } from '@vercel/blob'
 import yauzl from 'yauzl'
 import { compareAsts, toCsv } from '../scripts/compare-asts.mjs'
 
-const jobs = new Map()
-const packages = new Map()
+const BLOB_ACCESS = 'public'
 
 function decodeXml(value = '') {
   return String(value)
@@ -426,9 +426,40 @@ function createPbipPackage({ jobId, originalName, tableauAst, powerbiAst, valida
   return { buffer: zip.toBuffer(), migrationSpec }
 }
 
-function absoluteUrl(request, relativePath) {
-  const baseUrl = process.env.PUBLIC_BASE_URL || `https://${request.headers.host}`
-  return new URL(relativePath, baseUrl).toString()
+function hasBlobCredentials() {
+  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN)
+}
+
+async function uploadBlob(pathname, body, contentType) {
+  if (!hasBlobCredentials()) {
+    throw new Error('Vercel Blob is not configured. Connect a Blob store to this project first.')
+  }
+  return put(pathname, body, {
+    access: BLOB_ACCESS,
+    contentType,
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  })
+}
+
+async function uploadJsonBlob(pathname, value) {
+  return uploadBlob(pathname, `${JSON.stringify(value, null, 2)}\n`, 'application/json')
+}
+
+async function getJobMetadata(jobId) {
+  try {
+    const blob = await head(`jobs/${jobId}/metadata.json`, { access: BLOB_ACCESS })
+    const response = await fetch(blob.url)
+    if (!response.ok) return null
+    return response.json()
+  } catch {
+    return null
+  }
+}
+
+async function saveJobMetadata(metadata) {
+  await uploadJsonBlob(`jobs/${metadata.jobId}/metadata.json`, metadata)
+  return metadata
 }
 
 async function dispatchPbixWorkflow({ jobId, pbipPackageUrl }) {
@@ -502,28 +533,40 @@ async function parseMultipartUpload(request) {
 async function handleConvert(request, response) {
   const upload = await parseMultipartUpload(request)
   const jobId = crypto.randomUUID()
+  const jobRoot = `jobs/${jobId}`
   const { ast: tableauAst, summary } = await extractTableauAstFromUpload(upload)
   const powerbiAst = powerBiAstFromTableau(tableauAst)
   const validationRows = compareAsts(tableauAst, powerbiAst)
   const validationCsv = toCsv(validationRows)
   const { buffer, migrationSpec } = createPbipPackage({ jobId, originalName: upload.filename, tableauAst, powerbiAst, validationCsv })
-  packages.set(jobId, { buffer, filename: 'powerbi_project_package.zip' })
+
+  const [tableauAstBlob, powerbiAstBlob, validationCsvBlob, pbipPackageBlob] = await Promise.all([
+    uploadJsonBlob(`${jobRoot}/tableau_ast.json`, tableauAst),
+    uploadJsonBlob(`${jobRoot}/powerbi_ast.json`, powerbiAst),
+    uploadBlob(`${jobRoot}/validation_results.csv`, validationCsv, 'text/csv'),
+    uploadBlob(`${jobRoot}/powerbi_project_package.zip`, buffer, 'application/zip'),
+  ])
 
   const statusSummary = validationRows.reduce((acc, row) => {
     acc[row.status] = (acc[row.status] || 0) + 1
     return acc
   }, {})
-  const pbipPackagePath = `/api/downloads/${jobId}/powerbi_project_package.zip`
   const metadata = {
     jobId,
     status: 'pbip-generated',
-    pbipPackagePath,
-    pbipPackageUrl: absoluteUrl(request, pbipPackagePath),
+    artifactUrls: {
+      tableauAst: tableauAstBlob.downloadUrl || tableauAstBlob.url,
+      powerbiAst: powerbiAstBlob.downloadUrl || powerbiAstBlob.url,
+      validationCsv: validationCsvBlob.downloadUrl || validationCsvBlob.url,
+      pbipPackage: pbipPackageBlob.downloadUrl || pbipPackageBlob.url,
+    },
+    pbipPackagePath: pbipPackageBlob.pathname,
+    pbipPackageUrl: pbipPackageBlob.downloadUrl || pbipPackageBlob.url,
     pbix: null,
     workflow: null,
     updatedAt: new Date().toISOString(),
   }
-  jobs.set(jobId, metadata)
+  await saveJobMetadata(metadata)
 
   sendJson(response, 200, {
     jobId,
@@ -538,11 +581,11 @@ async function handleConvert(request, response) {
     },
     rows: validationRows,
     downloads: {
-      tableauAst: `/api/downloads/${jobId}/tableau_ast.json`,
-      powerbiAst: `/api/downloads/${jobId}/powerbi_ast.json`,
-      validationCsv: `/api/downloads/${jobId}/validation_results.csv`,
-      pbipPackage: pbipPackagePath,
-      migrationPackage: pbipPackagePath,
+      tableauAst: metadata.artifactUrls.tableauAst,
+      powerbiAst: metadata.artifactUrls.powerbiAst,
+      validationCsv: metadata.artifactUrls.validationCsv,
+      pbipPackage: metadata.artifactUrls.pbipPackage,
+      migrationPackage: metadata.artifactUrls.pbipPackage,
       pbix: null,
     },
     migrationSpec,
@@ -564,25 +607,35 @@ export default async function handler(request, response) {
       return
     }
 
-    const downloadMatch = pathname.match(/^\/api\/downloads\/([^/]+)\/([^/]+)$/)
-    if (request.method === 'GET' && downloadMatch) {
-      const [, jobId, filename] = downloadMatch
-      const packageEntry = packages.get(jobId)
-      if (!packageEntry) {
-        sendJson(response, 404, { error: 'Download expired or job not found' })
+    const legacyDownloadMatch = pathname.match(/^\/api\/downloads\/([^/]+)\/([^/]+)$/)
+    if (request.method === 'GET' && legacyDownloadMatch) {
+      const [, jobId, filename] = legacyDownloadMatch
+      const metadata = await getJobMetadata(jobId)
+      const artifactKey = filename === 'tableau_ast.json'
+        ? 'tableauAst'
+        : filename === 'powerbi_ast.json'
+          ? 'powerbiAst'
+          : filename === 'validation_results.csv'
+            ? 'validationCsv'
+            : filename === 'powerbi_project_package.zip'
+              ? 'pbipPackage'
+              : null
+      const artifactUrl = artifactKey ? metadata?.artifactUrls?.[artifactKey] : null
+      if (!artifactUrl) {
+        sendJson(response, 404, { error: 'Download not found' })
         return
       }
-      response.setHeader('Content-Type', filename.endsWith('.zip') ? 'application/zip' : 'application/octet-stream')
-      response.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-      response.end(packageEntry.buffer)
+      response.statusCode = 302
+      response.setHeader('Location', artifactUrl)
+      response.end()
       return
     }
 
     const jobMatch = pathname.match(/^\/api\/jobs\/([^/]+)$/)
     if (request.method === 'GET' && jobMatch) {
-      const metadata = jobs.get(jobMatch[1])
+      const metadata = await getJobMetadata(jobMatch[1])
       if (!metadata) {
-        sendJson(response, 404, { error: 'Job not found in this server process' })
+        sendJson(response, 404, { error: 'Job not found' })
         return
       }
       sendJson(response, 200, metadata)
@@ -591,16 +644,16 @@ export default async function handler(request, response) {
 
     const dispatchMatch = pathname.match(/^\/api\/jobs\/([^/]+)\/package-pbix$/)
     if (request.method === 'POST' && dispatchMatch) {
-      const metadata = jobs.get(dispatchMatch[1])
+      const metadata = await getJobMetadata(dispatchMatch[1])
       if (!metadata) {
-        sendJson(response, 404, { error: 'Job not found in this server process' })
+        sendJson(response, 404, { error: 'Job not found' })
         return
       }
       const dispatch = await dispatchPbixWorkflow({ jobId: metadata.jobId, pbipPackageUrl: metadata.pbipPackageUrl })
       metadata.status = dispatch.dispatched ? 'pbix-worker-dispatched' : 'pbix-worker-unavailable'
       metadata.workflow = dispatch
       metadata.updatedAt = new Date().toISOString()
-      jobs.set(metadata.jobId, metadata)
+      await saveJobMetadata(metadata)
       sendJson(response, dispatch.dispatched ? 202 : 200, metadata)
       return
     }
