@@ -29,6 +29,20 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path work | Out-Null
           New-Item -ItemType Directory -Force -Path out | Out-Null
+          New-Item -ItemType Directory -Force -Path tools | Out-Null
+
+      - name: Install pbi-tools Core
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/pbi-tools/pbi-tools/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -match "pbi-tools\.core\..*_win-x64\.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "Could not find pbi-tools Core win-x64 release asset" }
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "tools\pbi-tools-core.zip"
+          Expand-Archive -Path "tools\pbi-tools-core.zip" -DestinationPath "tools\pbi-tools" -Force
+          $exe = Get-ChildItem -Path "tools\pbi-tools" -Recurse -Filter "pbi-tools.core.exe" | Select-Object -First 1
+          if (-not $exe) { throw "pbi-tools.core.exe not found after extraction" }
+          "pbi_tools_path=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $exe info
 
       - name: Download PBIP package
         shell: pwsh
@@ -45,26 +59,52 @@ jobs:
           "pbip_path=$($pbip.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "report_name=$($pbip.BaseName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Package PBIX placeholder
+      - name: Compile PBIP to PBIX with pbi-tools
+        id: compile
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $pbipPath = "${{ steps.locate.outputs.pbip_path }}"
+          $pbipFolder = Split-Path -Parent $pbipPath
+          $outputPath = Join-Path (Resolve-Path "out") "${{ steps.locate.outputs.report_name }}.pbix"
+          & $env:pbi_tools_path compile $pbipFolder $outputPath PBIX true
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            "compiled=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit $exitCode
+          }
+          if (-not (Test-Path $outputPath)) { throw "pbi-tools completed but did not create $outputPath" }
+          "compiled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Capture PBIP source and packaging note
+        if: always()
         shell: pwsh
         run: |
-          # This step is the integration seam for a real Windows Power BI packager.
-          # Replace this placeholder with your licensed packaging command, for example:
-          #   pbi-tools compile "${{ steps.locate.outputs.pbip_path }}" -format PBIX -outPath "out"
-          # or a Power BI Desktop/Fabric automation step.
-          $readme = @"
-          PBIX packaging worker reached GitHub Actions successfully.
-
-          Job ID: ${{ inputs.job_id }}
-          PBIP: ${{ steps.locate.outputs.pbip_path }}
-
-          This artifact is a placeholder because no licensed PBIX packaging command is configured in the workflow yet.
-          Install/configure pbi-tools, Power BI Desktop automation, or Fabric export in this step to emit a native .pbix.
-          "@
-          $readme | Out-File -FilePath "out\PBIX_PACKAGING_PLACEHOLDER.txt" -Encoding utf8
           Compress-Archive -Path "work\project\*" -DestinationPath "out\${{ steps.locate.outputs.report_name }}-pbip-source.zip" -Force
+          if ("${{ steps.compile.outputs.compiled }}" -eq "true") {
+            $note = @"
+            pbi-tools produced a PBIX artifact successfully.
+
+            Job ID: ${{ inputs.job_id }}
+            PBIP: ${{ steps.locate.outputs.pbip_path }}
+            Workflow run: ${{ github.run_id }}
+            "@
+          } else {
+            $note = @"
+            pbi-tools could not compile this generated PBIP into a PBIX.
+
+            Job ID: ${{ inputs.job_id }}
+            PBIP: ${{ steps.locate.outputs.pbip_path }}
+            Workflow run: ${{ github.run_id }}
+
+            pbi-tools supports PBIX output mainly for report-only/thin report projects. For PBIP projects that include a semantic model, pbi-tools may require PBIT output or Power BI Desktop/Fabric packaging instead.
+            The extracted PBIP source is included for debugging.
+            "@
+          }
+          $note | Out-File -FilePath "out\PBIX_PACKAGING_NOTE.txt" -Encoding utf8
 
       - name: Upload packaged artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pbix-worker-${{ inputs.job_id }}
@@ -72,18 +112,27 @@ jobs:
           retention-days: 7
 
       - name: Callback status
-        if: ${{ inputs.callback_url != '' }}
+        if: ${{ always() && inputs.callback_url != '' }}
         shell: pwsh
         run: |
           $headers = @{}
           if ("${{ inputs.callback_token }}" -ne "") {
             $headers["Authorization"] = "Bearer ${{ inputs.callback_token }}"
           }
+          $compiled = "${{ steps.compile.outputs.compiled }}" -eq "true"
+          $status = if ($compiled) { "worker-complete" } else { "worker-failed" }
+          $note = if ($compiled) { "pbi-tools produced a PBIX artifact." } else { "pbi-tools did not emit a PBIX. See PBIX_PACKAGING_NOTE.txt and workflow logs." }
           $body = @{
             jobId = "${{ inputs.job_id }}"
-            status = "worker-complete"
+            status = $status
             artifactName = "pbix-worker-${{ inputs.job_id }}"
             runId = "${{ github.run_id }}"
-            note = "GitHub Actions worker completed. Configure packaging step to emit native PBIX."
+            note = $note
           } | ConvertTo-Json
           Invoke-RestMethod -Method Post -Uri "${{ inputs.callback_url }}" -Headers $headers -Body $body -ContentType "application/json"
+
+      - name: Fail if PBIX was not created
+        if: ${{ steps.compile.outputs.compiled != 'true' }}
+        shell: pwsh
+        run: |
+          throw "pbi-tools did not emit a PBIX. See PBIX_PACKAGING_NOTE.txt and workflow logs."

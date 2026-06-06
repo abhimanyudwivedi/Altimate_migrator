@@ -41,12 +41,12 @@ PBIX_CALLBACK_TOKEN=<shared bearer token>
 
 ## Important packaging step
 
-The current workflow contains a placeholder step. Replace it with your licensed packaging command, for example:
+The workflow now installs `pbi-tools` Core from the latest GitHub release and attempts to compile the generated PBIP project into a native `.pbix` artifact:
 
 ```powershell
-pbi-tools compile "path\to\report.pbip" -format PBIX -outPath "out"
+pbi-tools.core compile <pbip-project-folder> <output.pbix> PBIX true
 ```
 
-or a Power BI Desktop/Fabric automation step.
+Important limitation: `pbi-tools` documents PBIX compilation as primarily supported for report-only/thin report projects. PBIP projects containing a semantic model may need PBIT output, Power BI Desktop automation, or Fabric/Power BI REST packaging instead.
 
-Until that command is configured, the workflow proves orchestration but uploads a placeholder artifact instead of a native `.pbix`.
+If compilation fails, the workflow still uploads the extracted PBIP source ZIP and `PBIX_PACKAGING_NOTE.txt` so the failure can be inspected.
