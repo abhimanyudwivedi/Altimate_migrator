@@ -35,7 +35,7 @@ PUBLIC_BASE_URL=<public URL where /downloads/... is reachable>
 Optional callback support:
 
 ```text
-PBIX_CALLBACK_URL=<public API callback URL>
+PBIX_CALLBACK_URL=<public API callback URL, defaults to PUBLIC_BASE_URL/api/jobs/<jobId>/worker-callback>
 PBIX_CALLBACK_TOKEN=<shared bearer token>
 ```
 
@@ -47,6 +47,12 @@ The workflow now installs `pbi-tools` Core from the latest GitHub release and at
 pbi-tools.core compile <pbip-project-folder> <output.pbix> PBIX true
 ```
 
-Important limitation: `pbi-tools` documents PBIX compilation as primarily supported for report-only/thin report projects. PBIP projects containing a semantic model may need PBIT output, Power BI Desktop automation, or Fabric/Power BI REST packaging instead.
+Important limitation: `pbi-tools` documents PBIX compilation as primarily supported for report-only/thin report projects. PBIP projects containing a semantic model are expected to use PBIT output instead.
 
-If compilation fails, the workflow still uploads the extracted PBIP source ZIP and `PBIX_PACKAGING_NOTE.txt` so the failure can be inspected.
+If PBIX compilation fails or does not emit a file, the workflow attempts a `.pbit` fallback:
+
+```powershell
+pbi-tools.core compile <pbip-project-folder> <output.pbit> PBIT true
+```
+
+The workflow always uploads the extracted PBIP source ZIP and `PBIX_PACKAGING_NOTE.txt` so the result can be inspected.

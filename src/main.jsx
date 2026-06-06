@@ -333,9 +333,28 @@ function App() {
     }
   }
 
+  async function refreshPbixWorkerStatus(jobId = uploadStatus.result?.jobId) {
+    if (!jobId) return
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`)
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to refresh worker status')
+      }
+      const workerNote = result.worker?.note
+      setPbixStatus({
+        state: result.status || 'unknown',
+        message: workerNote || `Current worker status: ${result.status || 'unknown'}`,
+        result,
+      })
+    } catch (refreshError) {
+      setPbixStatus({ state: 'error', message: refreshError.message, result: null })
+    }
+  }
+
   async function handlePbixWorkerDispatch() {
     if (!uploadStatus.result?.jobId) return
-    setPbixStatus({ state: 'dispatching', message: 'Triggering GitHub Actions PBIX worker...', result: null })
+    setPbixStatus({ state: 'dispatching', message: 'Triggering GitHub Actions PBIX/PBIT worker...', result: null })
 
     try {
       const response = await fetch(`/api/jobs/${uploadStatus.result.jobId}/package-pbix`, { method: 'POST' })
@@ -346,7 +365,7 @@ function App() {
       setPbixStatus({
         state: result.workflow?.dispatched ? 'dispatched' : 'unavailable',
         message: result.workflow?.dispatched
-          ? 'GitHub Actions PBIX worker dispatched. Check the repository Actions tab for the artifact.'
+          ? 'GitHub Actions worker dispatched. It will try PBIX first, then PBIT fallback for semantic-model projects.'
           : result.workflow?.reason || 'PBIX worker is not configured yet.',
         result,
       })
@@ -414,7 +433,10 @@ function App() {
               <a href={uploadStatus.result.downloads.validationCsv} download>Validation CSV</a>
               <a href={uploadStatus.result.downloads.pbipPackage || uploadStatus.result.downloads.migrationPackage} download>Power BI Project (.pbip)</a>
               <button className="download-action" type="button" onClick={handlePbixWorkerDispatch} disabled={pbixStatus.state === 'dispatching'}>
-                {pbixStatus.state === 'dispatching' ? 'Dispatching...' : 'Trigger PBIX Worker'}
+                {pbixStatus.state === 'dispatching' ? 'Dispatching...' : 'Trigger PBIX/PBIT Worker'}
+              </button>
+              <button className="download-action secondary" type="button" onClick={() => refreshPbixWorkerStatus()} disabled={pbixStatus.state === 'dispatching'}>
+                Refresh Worker Status
               </button>
             </div>
           )}

@@ -462,11 +462,30 @@ async function saveJobMetadata(metadata) {
   return metadata
 }
 
+async function parseJsonBody(request) {
+  const chunks = []
+  for await (const chunk of request) chunks.push(chunk)
+  if (!chunks.length) return {}
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}
+
+function isValidCallbackToken(request) {
+  const expectedToken = process.env.PBIX_CALLBACK_TOKEN || ''
+  if (!expectedToken) return true
+  const auth = request.headers.authorization || ''
+  return auth === `Bearer ${expectedToken}`
+}
+
+function publicBaseUrl() {
+  return (process.env.PUBLIC_BASE_URL || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` || '').replace(/\/$/, '')
+}
+
 async function dispatchPbixWorkflow({ jobId, pbipPackageUrl }) {
   const owner = process.env.GITHUB_OWNER
   const repo = process.env.GITHUB_REPO
   const token = process.env.GITHUB_TOKEN
   const ref = process.env.GITHUB_REF || 'main'
+  const callbackUrl = process.env.PBIX_CALLBACK_URL || (publicBaseUrl() ? `${publicBaseUrl()}/api/jobs/${jobId}/worker-callback` : '')
   if (!owner || !repo || !token) {
     return { dispatched: false, reason: 'Missing GITHUB_OWNER, GITHUB_REPO, or GITHUB_TOKEN environment variables' }
   }
@@ -484,7 +503,7 @@ async function dispatchPbixWorkflow({ jobId, pbipPackageUrl }) {
       inputs: {
         job_id: jobId,
         pbip_package_url: pbipPackageUrl,
-        callback_url: process.env.PBIX_CALLBACK_URL || '',
+        callback_url: callbackUrl,
         callback_token: process.env.PBIX_CALLBACK_TOKEN || '',
       },
     }),
@@ -628,6 +647,33 @@ export default async function handler(request, response) {
       response.statusCode = 302
       response.setHeader('Location', artifactUrl)
       response.end()
+      return
+    }
+
+    const callbackMatch = pathname.match(/^\/api\/jobs\/([^/]+)\/worker-callback$/)
+    if (request.method === 'POST' && callbackMatch) {
+      if (!isValidCallbackToken(request)) {
+        sendJson(response, 401, { error: 'Unauthorized callback' })
+        return
+      }
+      const metadata = await getJobMetadata(callbackMatch[1])
+      if (!metadata) {
+        sendJson(response, 404, { error: 'Job not found' })
+        return
+      }
+      const body = await parseJsonBody(request)
+      metadata.status = body.status || metadata.status
+      metadata.worker = {
+        artifactName: body.artifactName || null,
+        runId: body.runId || null,
+        note: body.note || '',
+        pbixCreated: Boolean(body.pbixCreated),
+        pbitCreated: Boolean(body.pbitCreated),
+        updatedAt: new Date().toISOString(),
+      }
+      metadata.updatedAt = new Date().toISOString()
+      await saveJobMetadata(metadata)
+      sendJson(response, 200, { ok: true, jobId: metadata.jobId, status: metadata.status })
       return
     }
 
