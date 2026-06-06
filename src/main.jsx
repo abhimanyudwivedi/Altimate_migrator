@@ -297,14 +297,8 @@ function App() {
     setFilters({ workbook: 'All', category: 'All', status: 'All', severity: 'All', search: '' })
   }
 
-  async function refreshValidationCsv() {
-    const response = await fetch(`/validation_results.csv?ts=${Date.now()}`)
-    if (!response.ok) {
-      throw new Error('Conversion completed, but the refreshed CSV could not be loaded')
-    }
-    const csvText = await response.text()
-    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true })
-    setRows(parsed.data.filter((row) => row.validation_id))
+  function refreshValidationRows(nextRows) {
+    setRows(nextRows.filter((row) => row.validation_id))
     resetFilters()
   }
 
@@ -325,7 +319,7 @@ function App() {
       if (!response.ok) {
         throw new Error(result.error || 'Conversion failed')
       }
-      await refreshValidationCsv()
+      refreshValidationRows(result.rows || [])
       setUploadStatus({
         state: 'done',
         message: `Converted ${result.originalFile}. Dashboard refreshed with ${result.validationSummary.total} validation rows.`,
