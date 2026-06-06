@@ -82,26 +82,26 @@ jobs:
         run: |
           Compress-Archive -Path "work\project\*" -DestinationPath "out\${{ steps.locate.outputs.report_name }}-pbip-source.zip" -Force
           if ("${{ steps.compile.outputs.compiled }}" -eq "true") {
-            $note = @"
-            pbi-tools produced a PBIX artifact successfully.
-
-            Job ID: ${{ inputs.job_id }}
-            PBIP: ${{ steps.locate.outputs.pbip_path }}
-            Workflow run: ${{ github.run_id }}
-            "@
+            $noteLines = @(
+              "pbi-tools produced a PBIX artifact successfully.",
+              "",
+              "Job ID: ${{ inputs.job_id }}",
+              "PBIP: ${{ steps.locate.outputs.pbip_path }}",
+              "Workflow run: ${{ github.run_id }}"
+            )
           } else {
-            $note = @"
-            pbi-tools could not compile this generated PBIP into a PBIX.
-
-            Job ID: ${{ inputs.job_id }}
-            PBIP: ${{ steps.locate.outputs.pbip_path }}
-            Workflow run: ${{ github.run_id }}
-
-            pbi-tools supports PBIX output mainly for report-only/thin report projects. For PBIP projects that include a semantic model, pbi-tools may require PBIT output or Power BI Desktop/Fabric packaging instead.
-            The extracted PBIP source is included for debugging.
-            "@
+            $noteLines = @(
+              "pbi-tools could not compile this generated PBIP into a PBIX.",
+              "",
+              "Job ID: ${{ inputs.job_id }}",
+              "PBIP: ${{ steps.locate.outputs.pbip_path }}",
+              "Workflow run: ${{ github.run_id }}",
+              "",
+              "pbi-tools supports PBIX output mainly for report-only/thin report projects. For PBIP projects that include a semantic model, pbi-tools may require PBIT output or Power BI Desktop/Fabric packaging instead.",
+              "The extracted PBIP source is included for debugging."
+            )
           }
-          $note | Out-File -FilePath "out\PBIX_PACKAGING_NOTE.txt" -Encoding utf8
+          $noteLines | Out-File -FilePath "out\PBIX_PACKAGING_NOTE.txt" -Encoding utf8
 
       - name: Upload packaged artifacts
         if: always()
