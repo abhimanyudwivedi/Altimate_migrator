@@ -1,0 +1,11 @@
+{
+  "workbook": {
+    "name": "Airbnb-AnalyticsCaseStudy",
+    "target_file": "missing_powerbi_file.pbix",
+    "format": "powerbi-pbix",
+    "generated_by": "altimate-ai-powerbi-ast-placeholder",
+    "ast_version": "0.1.0",
+    "notes": "Placeholder target AST because no .pbix file has been provided yet. Replace this file with a real Power BI AST before final validation."
+  },
+  "nodes": []
+}

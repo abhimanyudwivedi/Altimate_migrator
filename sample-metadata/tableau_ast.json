@@ -1,0 +1,655 @@
+{
+  "workbook": {
+    "name": "Airbnb-AnalyticsCaseStudy",
+    "source_file": "Airbnb - Analytics Case Study.twbx",
+    "format": "tableau-twbx",
+    "generated_by": "altimate-ai-tableau-ast-extractor",
+    "ast_version": "0.1.0",
+    "extracted_twb": "Airbnb - Analytics Case Study.twb"
+  },
+  "nodes": [
+    {
+      "id": "ds_federated_0i4eu9k09wvgcy1bg8l8e1j7qmb9",
+      "kind": "data_source",
+      "name": "Open_Listing_dataset (Dataset_2_Open_Listings.csv)",
+      "connection": {
+        "type": "federated",
+        "relation": "Open_Listing_dataset",
+        "table": "[Open_Listing_dataset$]",
+        "extract": true
+      },
+      "fields": [
+        "Date",
+        "Open_Listings_0_2",
+        "Open_Listings_3_5",
+        "Open_Listings_6_10",
+        "Open_Listings_11_15",
+        "Open_Listings_16",
+        "Open!Listing!dataset_CE5F6257B64B4EABABC1CFF79330CA8D",
+        "Calculation_528047066845138945",
+        "Calculation_528047066845351938",
+        "Calculation_528047066845548547",
+        "Calculation_528047066845810693",
+        "Total open listings",
+        "Images 0-2",
+        "Images 3-5",
+        "Images 6-10",
+        "Images 11-15",
+        "Images >16",
+        "Open Listings 0 2",
+        "Open Listings 11 15",
+        "Open Listings 16",
+        "Open Listings 3 5",
+        "Open Listings 6 10",
+        "Open_Listing_dataset"
+      ]
+    },
+    {
+      "id": "ds_federated_0xec5ga0wb9mry1eejmuc1plw1zl",
+      "kind": "data_source",
+      "name": "Redundant_Listings_Dataset (Dataset_3_Redundant_Listings.csv)",
+      "connection": {
+        "type": "federated",
+        "relation": "Redundant_Listings_Dataset",
+        "table": "[Redundant_Listings_Dataset$]",
+        "extract": true
+      },
+      "fields": [
+        "Property_Images",
+        "Total_Listings",
+        "Redundant_Listings",
+        "non redundant listings",
+        "%of redundant listing",
+        "%Contribution",
+        "Redundant!Listings!Dataset_30AE714687994148A7F5F094C94E35FE",
+        "%Of Redundant Listing",
+        "%age redundant",
+        "Property Images",
+        "Redundant Listings",
+        "Total Listings",
+        "Redundant_Listings_Dataset",
+        "Non Redundant Listings"
+      ]
+    },
+    {
+      "id": "ds_federated_13cnlk4151y9qm15yjewe0aiooyi",
+      "kind": "data_source",
+      "name": "Listing_Dataset (Dataset_1_Listings.csv)",
+      "connection": {
+        "type": "federated",
+        "relation": "Listing_Dataset",
+        "table": "[Listing_Dataset$]",
+        "extract": true
+      },
+      "fields": [
+        "Listing_Id",
+        "Posting_Date",
+        "Posting_Time",
+        "Location",
+        "Images",
+        "Bookings",
+        "Host_Type",
+        "Listing!Dataset_4DD931866B3D43B181D70290BC74ADCA",
+        "Calculation_528047066885099527",
+        "Image Bucket",
+        "Age Bucket",
+        "Years Diff",
+        "Latest_date",
+        "Monthly Booking",
+        "Months",
+        "Host Type",
+        "Listing Id",
+        "Posting Date",
+        "Posting Time",
+        "Listing_Dataset"
+      ]
+    },
+    {
+      "id": "calc_date",
+      "kind": "calculation",
+      "name": "Date",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_0_2]+[Open_Listings_11_15]+[Open_Listings_16]+[Open_Listings_3_5]+[Open_Listings_6_10])",
+      "datatype": "date",
+      "role": "",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_0_2]+[Open_Listings_11_15]+[Open_Listings_16]+[Open_Listings_3_5]+[Open_Listings_6_10])",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_0_2",
+          "Open_Listings_11_15",
+          "Open_Listings_16",
+          "Open_Listings_3_5",
+          "Open_Listings_6_10"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_images_0_2",
+      "kind": "calculation",
+      "name": "Images 0-2",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_0_2])/[Calculation_528047066844622848]",
+      "datatype": "real",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_0_2])/[Calculation_528047066844622848]",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_0_2",
+          "Calculation_528047066844622848"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_images_3_5",
+      "kind": "calculation",
+      "name": "Images 3-5",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_3_5])/[Calculation_528047066844622848]",
+      "datatype": "real",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_3_5])/[Calculation_528047066844622848]",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_3_5",
+          "Calculation_528047066844622848"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_images_6_10",
+      "kind": "calculation",
+      "name": "Images 6-10",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_6_10])/[Calculation_528047066844622848]",
+      "datatype": "real",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_6_10])/[Calculation_528047066844622848]",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_6_10",
+          "Calculation_528047066844622848"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_images_11_15",
+      "kind": "calculation",
+      "name": "Images 11-15",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_11_15])/[Calculation_528047066844622848]",
+      "datatype": "real",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_11_15])/[Calculation_528047066844622848]",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_11_15",
+          "Calculation_528047066844622848"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_images_16",
+      "kind": "calculation",
+      "name": "Images >16",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_16])/[Calculation_528047066844622848]",
+      "datatype": "real",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_16])/[Calculation_528047066844622848]",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_16",
+          "Calculation_528047066844622848"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_open_listings_0_2",
+      "kind": "calculation",
+      "name": "Open Listings 0 2",
+      "expression_language": "tableau-calculation",
+      "expression": "ROUND([Redundant_Listings]/[Total_Listings],2)",
+      "datatype": "integer",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "ROUND([Redundant_Listings]/[Total_Listings],2)",
+        "functions": [
+          "ROUND"
+        ],
+        "fields": [
+          "Redundant_Listings",
+          "Total_Listings"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_property_images",
+      "kind": "calculation",
+      "name": "Property Images",
+      "expression_language": "tableau-calculation",
+      "expression": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+      "datatype": "string",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+        "functions": [],
+        "fields": [
+          "Images"
+        ],
+        "has_conditional_logic": true
+      }
+    },
+    {
+      "id": "calc_age_bucket",
+      "kind": "calculation",
+      "name": "Age Bucket",
+      "expression_language": "tableau-calculation",
+      "expression": "IF [Calculation_528047066889048073]<1\nTHEN\n\"<1\"\nELSEIF [Calculation_528047066889048073]>=1 AND [Calculation_528047066889048073]<2\nTHEN\n\"1-2\"\nELSEIF [Calculation_528047066889048073]>=2 AND [Calculation_528047066889048073]<3\nTHEN\n\"2-3\"\nELSEIF [Calculation_528047066889048073]>=3 AND [Calculation_528047066889048073]<4\nTHEN\n\"3-4\"\nELSEIF [Calculation_528047066889048073]>=4 AND [Calculation_528047066889048073]<=5\nTHEN\n\"4-5\"\nEND",
+      "datatype": "string",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "IF [Calculation_528047066889048073]<1\nTHEN\n\"<1\"\nELSEIF [Calculation_528047066889048073]>=1 AND [Calculation_528047066889048073]<2\nTHEN\n\"1-2\"\nELSEIF [Calculation_528047066889048073]>=2 AND [Calculation_528047066889048073]<3\nTHEN\n\"2-3\"\nELSEIF [Calculation_528047066889048073]>=3 AND [Calculation_528047066889048073]<4\nTHEN\n\"3-4\"\nELSEIF [Calculation_528047066889048073]>=4 AND [Calculation_528047066889048073]<=5\nTHEN\n\"4-5\"\nEND",
+        "functions": [],
+        "fields": [
+          "Calculation_528047066889048073"
+        ],
+        "has_conditional_logic": true
+      }
+    },
+    {
+      "id": "calc_years_diff",
+      "kind": "calculation",
+      "name": "Years Diff",
+      "expression_language": "tableau-calculation",
+      "expression": "DATEDIFF('month',[Posting_Date],[Calculation_528047066889306122])/12",
+      "datatype": "real",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "DATEDIFF('month',[Posting_Date],[Calculation_528047066889306122])/12",
+        "functions": [
+          "DATEDIFF"
+        ],
+        "fields": [
+          "Posting_Date",
+          "Calculation_528047066889306122"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_latest_date",
+      "kind": "calculation",
+      "name": "Latest_date",
+      "expression_language": "tableau-calculation",
+      "expression": "MAKEDATE(2019,8,31)",
+      "datatype": "date",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "MAKEDATE(2019,8,31)",
+        "functions": [
+          "MAKEDATE"
+        ],
+        "fields": [],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_monthly_booking",
+      "kind": "calculation",
+      "name": "Monthly Booking",
+      "expression_language": "tableau-calculation",
+      "expression": "INT(ROUND([Bookings]/[Calculation_528047066892730380]))",
+      "datatype": "integer",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "INT(ROUND([Bookings]/[Calculation_528047066892730380]))",
+        "functions": [
+          "INT",
+          "ROUND"
+        ],
+        "fields": [
+          "Bookings",
+          "Calculation_528047066892730380"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_months",
+      "kind": "calculation",
+      "name": "Months",
+      "expression_language": "tableau-calculation",
+      "expression": "ROUND(DATEDIFF('day',[Posting_Date],[Calculation_528047066889306122])/30)",
+      "datatype": "real",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "ROUND(DATEDIFF('day',[Posting_Date],[Calculation_528047066889306122])/30)",
+        "functions": [
+          "ROUND",
+          "DATEDIFF"
+        ],
+        "fields": [
+          "Posting_Date",
+          "Calculation_528047066889306122"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_host_type",
+      "kind": "calculation",
+      "name": "Host Type",
+      "expression_language": "tableau-calculation",
+      "expression": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+      "datatype": "string",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+        "functions": [],
+        "fields": [
+          "Images"
+        ],
+        "has_conditional_logic": true
+      }
+    },
+    {
+      "id": "calc_host_type",
+      "kind": "calculation",
+      "name": "Host Type",
+      "expression_language": "tableau-calculation",
+      "expression": "SUM([Open_Listings_0_2]+[Open_Listings_11_15]+[Open_Listings_16]+[Open_Listings_3_5]+[Open_Listings_6_10])",
+      "datatype": "string",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "SUM([Open_Listings_0_2]+[Open_Listings_11_15]+[Open_Listings_16]+[Open_Listings_3_5]+[Open_Listings_6_10])",
+        "functions": [
+          "SUM"
+        ],
+        "fields": [
+          "Open_Listings_0_2",
+          "Open_Listings_11_15",
+          "Open_Listings_16",
+          "Open_Listings_3_5",
+          "Open_Listings_6_10"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "calc_open_listings_0_2",
+      "kind": "calculation",
+      "name": "Open Listings 0 2",
+      "expression_language": "tableau-calculation",
+      "expression": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+      "datatype": "integer",
+      "role": "measure",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "IF [Images]<=2\nTHEN\n\"0-2\"\nELSEIF [Images]>2 AND [Images]<=5\nTHEN\n\"3-5\"\nELSEIF [Images]>5 AND [Images]<=10\nTHEN\n\"6-10\"\nELSEIF [Images]>10 AND [Images]<=15\nTHEN\n\"11-15\"\nELSEIF [Images]>15 AND [Images]<=20\nTHEN\n\"16-20\"\nELSEIF [Images]>20 AND [Images]<=25\nTHEN\n\"21-25\"\nELSEIF [Images]>25 AND [Images]<=30\nTHEN\n\"26-30\"\nELSEIF [Images]>30\nTHEN\n\">30\"\nEND",
+        "functions": [],
+        "fields": [
+          "Images"
+        ],
+        "has_conditional_logic": true
+      }
+    },
+    {
+      "id": "calc_host_type",
+      "kind": "calculation",
+      "name": "Host Type",
+      "expression_language": "tableau-calculation",
+      "expression": "ROUND([Redundant_Listings]/[Total_Listings],2)",
+      "datatype": "string",
+      "role": "dimension",
+      "ast": {
+        "type": "tableau_formula",
+        "raw_formula": "ROUND([Redundant_Listings]/[Total_Listings],2)",
+        "functions": [
+          "ROUND"
+        ],
+        "fields": [
+          "Redundant_Listings",
+          "Total_Listings"
+        ],
+        "has_conditional_logic": false
+      }
+    },
+    {
+      "id": "visual_booking_vs_image_and_age_bucket_for_regular_host",
+      "kind": "visual",
+      "name": "Booking vs image and age bucket for regular host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_booking_vs_image_and_age_bucket_for_super_host",
+      "kind": "visual",
+      "name": "Booking vs image and age bucket for super host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_image_bucket_vs_booking_for_regular_host",
+      "kind": "visual",
+      "name": "Image bucket vs booking for regular host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_image_bucket_vs_bookings_for_super_host",
+      "kind": "visual",
+      "name": "Image bucket vs bookings for super host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_image_vs_open_listing",
+      "kind": "visual",
+      "name": "Image vs Open listing",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Multiple Values",
+        "columns": "Measure Names"
+      },
+      "filters": [
+        "Measure Names"
+      ]
+    },
+    {
+      "id": "visual_images_vs_monthly_booking_regular_host",
+      "kind": "visual",
+      "name": "Images vs monthly booking regular host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Calculation_528047066892501003",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Calculation_528047066892501003",
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_images_vs_monthly_booking_super_host",
+      "kind": "visual",
+      "name": "Images vs monthly booking super host",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Calculation_528047066892501003",
+        "columns": "Calculation_528047066885099527"
+      },
+      "filters": [
+        "Calculation_528047066892501003",
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_optimal_images_for_regular_host",
+      "kind": "visual",
+      "name": "Optimal # images for regular host",
+      "visual_type": "circle",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Images"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_optimal_of_images_for_super_host",
+      "kind": "visual",
+      "name": "Optimal # of images for super host",
+      "visual_type": "circle",
+      "encodings": {
+        "rows": "Bookings",
+        "columns": "Images"
+      },
+      "filters": [
+        "Host_Type"
+      ]
+    },
+    {
+      "id": "visual_total_and_redundant_listing",
+      "kind": "visual",
+      "name": "Total and redundant listing",
+      "visual_type": "automatic",
+      "encodings": {
+        "rows": "Calculation_528047066848755718",
+        "columns": "Property_Images"
+      },
+      "filters": [
+        "Measure Names",
+        "Calculation_528047066848755718"
+      ]
+    },
+    {
+      "id": "filter_categorical_host_type_regular",
+      "kind": "filter",
+      "name": "Host_Type",
+      "field": "Host_Type",
+      "filter_type": "categorical",
+      "included_values": "",
+      "values": [
+        "Regular"
+      ]
+    },
+    {
+      "id": "filter_categorical_host_type_superhost",
+      "kind": "filter",
+      "name": "Host_Type",
+      "field": "Host_Type",
+      "filter_type": "categorical",
+      "included_values": "",
+      "values": [
+        "Superhost"
+      ]
+    },
+    {
+      "id": "filter_categorical_measure_names_usr_calculation_528047066845351938_qk",
+      "kind": "filter",
+      "name": "Measure Names",
+      "field": "Measure Names",
+      "filter_type": "categorical",
+      "included_values": "",
+      "values": [
+        "[federated.0i4eu9k09wvgcy1bg8l8e1j7qmb9].[usr:Calculation_528047066845351938:qk]"
+      ]
+    },
+    {
+      "id": "filter_quantitative_calculation_528047066892501003_1",
+      "kind": "filter",
+      "name": "Calculation_528047066892501003",
+      "field": "Calculation_528047066892501003",
+      "filter_type": "quantitative",
+      "included_values": "in-range",
+      "values": [
+        "min:1"
+      ]
+    },
+    {
+      "id": "filter_categorical_measure_names_sum_calculation_528047066848755718_qk",
+      "kind": "filter",
+      "name": "Measure Names",
+      "field": "Measure Names",
+      "filter_type": "categorical",
+      "included_values": "",
+      "values": [
+        "[federated.0xec5ga0wb9mry1eejmuc1plw1zl].[sum:Calculation_528047066848755718:qk]"
+      ]
+    },
+    {
+      "id": "filter_quantitative_calculation_528047066848755718",
+      "kind": "filter",
+      "name": "Calculation_528047066848755718",
+      "field": "Calculation_528047066848755718",
+      "filter_type": "quantitative",
+      "included_values": "non-null",
+      "values": []
+    }
+  ]
+}

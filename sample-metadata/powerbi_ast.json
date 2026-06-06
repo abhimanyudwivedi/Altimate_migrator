@@ -1,0 +1,100 @@
+{
+  "workbook": {
+    "name": "Executive Sales Overview",
+    "target_file": "executive_sales_overview.pbix",
+    "format": "powerbi-pbix",
+    "generated_by": "altimate-ai-ast-adapter",
+    "ast_version": "0.1.0"
+  },
+  "nodes": [
+    {
+      "id": "ds_salesforce_orders",
+      "kind": "data_source",
+      "name": "Salesforce Orders",
+      "connection": {
+        "type": "salesforce",
+        "server": "login.salesforce.com",
+        "database": "sales_cloud",
+        "schema": "orders"
+      },
+      "fields": ["order_id", "customer_id", "order_date", "sales", "discount", "region", "product_name", "customer_segment"]
+    },
+    {
+      "id": "rel_orders_customers",
+      "kind": "relationship",
+      "name": "Orders to Customers",
+      "from": "Orders.customer_id",
+      "to": "Customers.customer_id",
+      "cardinality": "many-to-one",
+      "active": true
+    },
+    {
+      "id": "calc_net_revenue",
+      "kind": "calculation",
+      "name": "Net Revenue",
+      "expression_language": "dax",
+      "expression": "SUM(Orders[Sales]) - SUM(Orders[Discount])",
+      "ast": {
+        "type": "binary_expression",
+        "operator": "-",
+        "left": { "type": "aggregate", "function": "SUM", "field": "Sales" },
+        "right": { "type": "aggregate", "function": "SUM", "field": "Discount" }
+      }
+    },
+    {
+      "id": "calc_gross_margin_pct",
+      "kind": "calculation",
+      "name": "Gross Margin %",
+      "expression_language": "dax",
+      "expression": "DIVIDE(SUM(Orders[Profit]), SUM(Orders[Sales]), 0)",
+      "ast": {
+        "type": "function_call",
+        "function": "DIVIDE",
+        "arguments": [
+          { "type": "aggregate", "function": "SUM", "field": "Profit" },
+          { "type": "aggregate", "function": "SUM", "field": "Sales" },
+          { "type": "literal", "value": 0 }
+        ]
+      }
+    },
+    {
+      "id": "visual_sales_by_region",
+      "kind": "visual",
+      "name": "Filled Map",
+      "visual_type": "filled_map",
+      "encodings": {
+        "location": "Region",
+        "color": "Net Revenue"
+      },
+      "filters": ["Order Date", "Customer Segment"]
+    },
+    {
+      "id": "visual_top_products",
+      "kind": "visual",
+      "name": "Top 10 Products",
+      "visual_type": "bar",
+      "encodings": {
+        "x": "Product Name",
+        "y": "Net Revenue"
+      },
+      "sort": { "field": "Product Name", "direction": "asc" },
+      "limit": 10
+    },
+    {
+      "id": "filter_order_date",
+      "kind": "filter",
+      "name": "Order Date Slicer",
+      "field": "order_date",
+      "filter_type": "relative_date",
+      "default": "last_12_months"
+    },
+    {
+      "id": "filter_customer_segment",
+      "kind": "filter",
+      "name": "Customer Segment Slicer",
+      "field": "customer_segment",
+      "filter_type": "multi_select",
+      "values": ["Consumer", "Corporate", "Home Office", null]
+    }
+  ]
+}
