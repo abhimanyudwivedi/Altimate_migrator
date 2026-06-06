@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "dev:api": "node scripts/server.mjs",
@@ -20,6 +21,7 @@
     "react": "latest",
     "react-dom": "latest",
     "recharts": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "yauzl": "^3.3.2"
   }
 }
