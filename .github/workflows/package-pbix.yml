@@ -67,7 +67,7 @@ jobs:
           $pbipPath = "${{ steps.locate.outputs.pbip_path }}"
           $pbipFolder = Split-Path -Parent $pbipPath
           $outputPath = Join-Path (Resolve-Path "out") "${{ steps.locate.outputs.report_name }}.pbix"
-          & $env:pbi_tools_path compile $pbipFolder $outputPath PBIX true
+          & $env:pbi_tools_path compile $pbipFolder -outPath $outputPath -format PBIX -overwrite
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
             "created=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -86,7 +86,7 @@ jobs:
           $pbipPath = "${{ steps.locate.outputs.pbip_path }}"
           $pbipFolder = Split-Path -Parent $pbipPath
           $outputPath = Join-Path (Resolve-Path "out") "${{ steps.locate.outputs.report_name }}.pbit"
-          & $env:pbi_tools_path compile $pbipFolder $outputPath PBIT true
+          & $env:pbi_tools_path compile $pbipFolder -outPath $outputPath -format PBIT -overwrite
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
             "created=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

@@ -44,7 +44,7 @@ PBIX_CALLBACK_TOKEN=<shared bearer token>
 The workflow now installs `pbi-tools` Core from the latest GitHub release and attempts to compile the generated PBIP project into a native `.pbix` artifact:
 
 ```powershell
-pbi-tools.core compile <pbip-project-folder> <output.pbix> PBIX true
+pbi-tools.core compile <pbip-project-folder> -outPath <output.pbix> -format PBIX -overwrite
 ```
 
 Important limitation: `pbi-tools` documents PBIX compilation as primarily supported for report-only/thin report projects. PBIP projects containing a semantic model are expected to use PBIT output instead.
@@ -52,7 +52,7 @@ Important limitation: `pbi-tools` documents PBIX compilation as primarily suppor
 If PBIX compilation fails or does not emit a file, the workflow attempts a `.pbit` fallback:
 
 ```powershell
-pbi-tools.core compile <pbip-project-folder> <output.pbit> PBIT true
+pbi-tools.core compile <pbip-project-folder> -outPath <output.pbit> -format PBIT -overwrite
 ```
 
 The workflow always uploads the extracted PBIP source ZIP and `PBIX_PACKAGING_NOTE.txt` so the result can be inspected.
