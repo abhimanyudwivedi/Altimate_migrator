@@ -384,6 +384,219 @@ function addJson(zip, filePath, value) {
   zip.addFile(filePath, Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf8'))
 }
 
+function addText(zip, filePath, value) {
+  zip.addFile(filePath, Buffer.from(value, 'utf8'))
+}
+
+function tmdlIdentifier(value = 'Item') {
+  const normalized = safeName(value).replace(/'/g, "''") || 'Item'
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(normalized) ? normalized : `'${normalized}'`
+}
+
+function mText(value = '') {
+  return String(value).replace(/"/g, '""')
+}
+
+function uniqueColumnNames(fields) {
+  const seen = new Map()
+  return fields.map((field, index) => {
+    const base = safeName(field).slice(0, 80) || `Column ${index + 1}`
+    const count = seen.get(base) || 0
+    seen.set(base, count + 1)
+    return count ? `${base} ${count + 1}` : base
+  })
+}
+
+function createPbixProjTableTmdl(tableName, fields) {
+  const columns = uniqueColumnNames(fields.length ? fields : ['Generated Placeholder'])
+  const columnList = columns.map((field) => `"${mText(field)}"`).join(', ')
+  const transformTypes = columns.map((field) => `{ "${mText(field)}", type text }`).join(', ')
+  const columnBlocks = columns.map((field, index) => `
+\tcolumn ${tmdlIdentifier(field)}
+\t\tdataType: string
+\t\tsummarizeBy: none
+\t\tsourceColumn: ${field}
+
+\t\tannotation SummarizationSetBy = Automatic${index === 0 ? '\n\n\t\tannotation PBI_ChangedProperties = ["IsDefaultLabel"]' : ''}
+`).join('')
+
+  return `table ${tmdlIdentifier(tableName)}
+${columnBlocks}
+\tpartition ${tmdlIdentifier(tableName)} = m
+\t\tmode: import
+\t\tsource =
+\t\t\t\tlet
+\t\t\t\t    Source = #table({${columnList}}, {}),
+\t\t\t\t    #"Changed Type" = Table.TransformColumnTypes(Source,{${transformTypes}})
+\t\t\t\tin
+\t\t\t\t    #"Changed Type"
+
+\tannotation PBI_ResultType = Table
+`
+}
+
+function createPbixProjModelFiles(tableauAst) {
+  const dataSources = tableauAst.nodes.filter((node) => node.kind === 'data_source')
+  const fields = Array.from(new Set(dataSources.flatMap((source) => source.fields || []))).slice(0, 80)
+  const tableName = 'Tableau Extract'
+  return {
+    database: `database ${tmdlIdentifier(safeName(tableauAst.workbook.name))}\n\tcompatibilityLevel: 1550\n`,
+    model: `model Model
+\tculture: en-US
+\tdefaultPowerBIDataSourceVersion: powerBI_V3
+\tsourceQueryCulture: en-US
+\tdataAccessOptions
+\t\tlegacyRedirects
+\t\treturnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["${tableName}"]
+
+ref table ${tmdlIdentifier(tableName)}
+`,
+    expressions: '',
+    relationships: '',
+    culture: `culture en-US
+
+\tlinguisticMetadata =
+\t\t\t{
+\t\t\t  "Version": "1.2.0",
+\t\t\t  "Language": "en-US",
+\t\t\t  "DynamicImprovement": "HighConfidence",
+\t\t\t  "Entities": {}
+\t\t\t}
+\t\tcontentType: json
+`,
+    table: createPbixProjTableTmdl(tableName, fields),
+  }
+}
+
+function createPbixProjReportFiles(tableauAst) {
+  const visuals = tableauAst.nodes.filter((node) => node.kind === 'visual')
+  const summaryText = `Converted Tableau workbook: ${safeName(tableauAst.workbook.name)}. Extracted ${visuals.length} views. Review generated metadata, then rebuild visuals and data-source bindings in Power BI Desktop.`
+  return {
+    report: {
+      id: 0,
+      layoutOptimization: 0,
+      resourcePackages: [],
+    },
+    config: {
+      version: '5.9',
+      activeSectionIndex: 0,
+      defaultDrillFilterOtherVisuals: true,
+      settings: {
+        useNewFilterPaneExperience: true,
+        allowChangeFilterTypes: true,
+        useStylableVisualContainerHeader: true,
+        exportDataMode: 1,
+      },
+    },
+    section: {
+      displayName: 'Converted Tableau Views',
+      displayOption: 1,
+      height: 720,
+      name: 'ReportSection',
+      ordinal: 0,
+      width: 1280,
+    },
+    visualConfig: {
+      name: 'altimateMigrationSummary',
+      layouts: [
+        {
+          id: 0,
+          position: { x: 80, y: 80, z: 1000, width: 1120, height: 180 },
+        },
+      ],
+      singleVisual: {
+        visualType: 'textbox',
+        drillFilterOtherVisuals: true,
+        objects: {
+          general: [
+            {
+              properties: {
+                paragraphs: [
+                  {
+                    textRuns: [
+                      {
+                        value: summaryText,
+                        textStyle: { fontSize: '18pt' },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    },
+    visualContainer: { height: 180, width: 1120, x: 80, y: 80, z: 1000 },
+  }
+}
+
+function addPbixProjFiles(zip, root, projectName, tableauAst) {
+  const projRoot = `${root}/${projectName}.PbixProj`
+  const model = createPbixProjModelFiles(tableauAst)
+  const report = createPbixProjReportFiles(tableauAst)
+
+  addJson(zip, `${projRoot}/.pbixproj.json`, {
+    version: '0.11',
+    created: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
+  })
+  addText(zip, `${projRoot}/Version.txt`, '1.25\n')
+  addJson(zip, `${projRoot}/ReportMetadata.json`, {
+    Version: 5,
+    AutoCreatedRelationships: [],
+    FileDescription: 'Generated by Altimate Migrator',
+    CreatedFrom: 'Cloud',
+  })
+  addJson(zip, `${projRoot}/ReportSettings.json`, {
+    Version: 1,
+    ReportSettings: {},
+    QueriesSettings: {
+      TypeDetectionEnabled: true,
+      RelationshipImportEnabled: true,
+      RunBackgroundAnalysis: true,
+      Version: '2.81.5831.821',
+    },
+  })
+  addJson(zip, `${projRoot}/DiagramLayout.json`, {
+    version: '1.1.0',
+    diagrams: [
+      {
+        ordinal: 0,
+        scrollPosition: { x: 0, y: 0 },
+        nodes: [
+          {
+            location: { x: 0, y: 0 },
+            nodeIndex: 'Tableau Extract',
+            size: { height: 320, width: 260 },
+            zIndex: 0,
+          },
+        ],
+      },
+    ],
+  })
+  addJson(zip, `${projRoot}/Report/report.json`, report.report)
+  addJson(zip, `${projRoot}/Report/config.json`, report.config)
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/section.json`, report.section)
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/config.json`, {})
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/filters.json`, [])
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/visualContainers/00000_textbox_summary/config.json`, report.visualConfig)
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/visualContainers/00000_textbox_summary/visualContainer.json`, report.visualContainer)
+  addJson(zip, `${projRoot}/Report/sections/000_Converted_Tableau_Views/visualContainers/00000_textbox_summary/filters.json`, [])
+  addText(zip, `${projRoot}/Model/database.tmdl`, model.database)
+  addText(zip, `${projRoot}/Model/model.tmdl`, model.model)
+  addText(zip, `${projRoot}/Model/expressions.tmdl`, model.expressions)
+  addText(zip, `${projRoot}/Model/relationships.tmdl`, model.relationships)
+  addText(zip, `${projRoot}/Model/tables/Tableau Extract.tmdl`, model.table)
+  addText(zip, `${projRoot}/Model/cultures/en-US.tmdl`, model.culture)
+
+  return `${projRoot}/.pbixproj.json`
+}
+
 function createPbipPackage({ jobId, originalName, tableauAst, powerbiAst, validationCsv }) {
   const projectName = safeName(tableauAst.workbook.name)
   const root = `${projectName}.PowerBIProject`
@@ -393,10 +606,12 @@ function createPbipPackage({ jobId, originalName, tableauAst, powerbiAst, valida
     generated_at: new Date().toISOString(),
     status: 'pbip-generated',
     pbip_path: `${root}/${projectName}.pbip`,
+    pbixproj_path: `${root}/${projectName}.PbixProj`,
     next_steps: [
       'Open the generated .pbip file in Power BI Desktop.',
       'Review generated DAX measures, source queries, and report layout.',
       'Replace placeholder Power Query source with the real data source.',
+      'Use the included .PbixProj folder for pbi-tools PBIT packaging.',
       'Save as .pbix from Power BI Desktop or configure GitHub Actions packaging.',
     ],
   }
@@ -421,8 +636,9 @@ function createPbipPackage({ jobId, originalName, tableauAst, powerbiAst, valida
   addJson(zip, `${root}/${projectName}.Report/report.json`, createReportDefinition(tableauAst))
   addJson(zip, `${root}/${projectName}.SemanticModel/definition.pbism`, { version: '1.0' })
   addJson(zip, `${root}/${projectName}.SemanticModel/definition/model.bim`, createModelDefinition(tableauAst))
+  addPbixProjFiles(zip, root, projectName, tableauAst)
   addJson(zip, `${root}/powerbi_ast.json`, powerbiAst)
-  zip.addFile(`${root}/README.md`, Buffer.from(`# ${projectName} Power BI Project\n\nOpen the .pbip in Power BI Desktop, review, then save as .pbix.\n`, 'utf8'))
+  zip.addFile(`${root}/README.md`, Buffer.from(`# ${projectName} Power BI Project\n\nOpen the .pbip in Power BI Desktop, review, then save as .pbix. The sibling .PbixProj folder is generated for pbi-tools PBIT packaging.\n`, 'utf8'))
   return { buffer: zip.toBuffer(), migrationSpec }
 }
 
